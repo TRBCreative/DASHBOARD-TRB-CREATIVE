@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRB Creative — Secure Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#080c12;--bg1:#0c1118;--bg2:#101620;
+  --gold:#d4a843;--gold2:#f0c870;--gold3:#a07828;
+  --cyan:#38bdf8;--em:#10b981;--rose:#f43f5e;--amb:#f59e0b;
+  --wh:#f8fafc;--tx:#cbd5e1;--mu:#475569;--mu2:#64748b;
+  --bd:rgba(212,168,67,0.14);
+  --gG:0 0 36px rgba(212,168,67,0.18);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:2px;}
+
+/* BG */
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);animation:ofl 12s ease-in-out infinite;}
+.orb.a{width:450px;height:450px;top:-120px;left:-80px;background:rgba(212,168,67,0.05);}
+.orb.b{width:350px;height:350px;bottom:-80px;right:-60px;background:rgba(56,189,248,0.04);animation-delay:4s;}
+@keyframes ofl{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-25px) scale(1.05);}}
+.grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(212,168,67,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,67,0.03) 1px,transparent 1px);background-size:52px 52px;animation:gp 9s ease-in-out infinite;}
+@keyframes gp{0%,100%{opacity:.5;}50%{opacity:1;}}
+.particles{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.particle{position:absolute;border-radius:50%;background:var(--gold);opacity:.12;animation:fl linear infinite;}
+@keyframes fl{0%{transform:translateY(100vh) scale(0);opacity:0;}10%{opacity:.12;}90%{opacity:.08;}100%{transform:translateY(-100px) scale(1);opacity:0;}}
+
+/* MAIN LAYOUT */
+.wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;padding:40px 20px 20px;}
+
+/* BRAND */
+.brand{text-align:center;margin-bottom:26px;animation:wIn .7s .1s cubic-bezier(.16,1,.3,1) both;}
+@keyframes wIn{from{transform:translateY(32px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.logo-ring{width:76px;height:76px;margin:0 auto 13px;border-radius:50%;border:2px solid var(--gold3);box-shadow:0 0 0 4px rgba(212,168,67,0.1),0 0 36px rgba(212,168,67,0.28);overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center;animation:lp 3s ease-in-out infinite;position:relative;}
+.logo-ring img{width:100%;height:100%;object-fit:cover;display:none;}@keyframes lp{0%,100%{box-shadow:0 0 0 4px rgba(212,168,67,0.1),0 0 36px rgba(212,168,67,0.22);}50%{box-shadow:0 0 0 8px rgba(212,168,67,0.07),0 0 52px rgba(212,168,67,0.38);}}
+.logo-ring img{width:100%;height:100%;object-fit:cover;display:block;}
+.brand-name{font-family:'Syne',sans-serif;font-size:1.65rem;font-weight:800;color:var(--wh);letter-spacing:2px;}
+.brand-name span{color:var(--gold);}
+.brand-tag{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--mu2);letter-spacing:2.5px;margin-top:3px;text-transform:uppercase;}
+
+/* CARD */
+.card{background:rgba(12,17,24,0.94);border:1px solid var(--bd);border-radius:16px;padding:32px 36px;width:420px;max-width:95vw;backdrop-filter:blur(20px);box-shadow:0 22px 72px rgba(0,0,0,0.55),var(--gG);position:relative;overflow:hidden;animation:wIn .7s .2s cubic-bezier(.16,1,.3,1) both;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold2),transparent);opacity:.85;}
+.card-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--mu2);letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:24px;}
+.card-title span{color:var(--gold);}
+
+/* FORM */
+.fg{margin-bottom:16px;}
+.fl{display:block;font-family:'JetBrains Mono',monospace;font-size:.63rem;font-weight:600;color:var(--mu2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+.iw{position:relative;display:flex;align-items:center;}
+.fi{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(212,168,67,0.14);border-radius:8px;padding:11px 13px 11px 38px;color:var(--wh);font-family:'JetBrains Mono',monospace;font-size:.92rem;outline:none;transition:all .25s;letter-spacing:1px;}
+.fi:focus{border-color:rgba(212,168,67,0.45);background:rgba(212,168,67,0.05);box-shadow:0 0 18px rgba(212,168,67,0.1);}
+.fi::placeholder{color:rgba(100,116,139,0.5);letter-spacing:0;font-family:'DM Sans',sans-serif;font-size:.84rem;}
+.i-ico{position:absolute;left:12px;font-size:.86rem;opacity:.45;pointer-events:none;transition:opacity .2s;}
+.iw:focus-within .i-ico{opacity:1;}
+.pw-eye{position:absolute;right:11px;background:none;border:none;cursor:pointer;color:var(--mu);font-size:.83rem;padding:3px;transition:color .2s;}
+.pw-eye:hover{color:var(--gold);}
+
+/* MESSAGES */
+.err-box{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.28);border-radius:8px;padding:9px 13px;font-size:.78rem;color:var(--rose);display:none;align-items:center;gap:8px;margin-bottom:14px;animation:shk .4s ease;}
+.err-box.show{display:flex;}
+@keyframes shk{0%,100%{transform:translateX(0);}20%{transform:translateX(-5px);}40%{transform:translateX(5px);}60%{transform:translateX(-4px);}80%{transform:translateX(4px);}}
+.lock-box{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.28);border-radius:8px;padding:9px 13px;font-size:.78rem;color:var(--amb);display:none;align-items:center;gap:8px;margin-bottom:14px;}
+.lock-box.show{display:flex;}
+
+/* LOGIN BTN */
+.btn-login{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold3));border:none;border-radius:8px;padding:12px;color:#080c12;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;margin-top:4px;}
+.btn-login::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.14),transparent);opacity:0;transition:opacity .2s;}
+.btn-login:hover::before{opacity:1;}
+.btn-login:hover{box-shadow:0 6px 26px rgba(212,168,67,0.4);transform:translateY(-1px);}
+.btn-login:active{transform:translateY(0);}
+.btn-login:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-login .bt{display:block;}
+.btn-login .sp{display:none;width:15px;height:15px;border:2px solid rgba(8,12,18,0.3);border-top-color:#080c12;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.btn-login.loading .bt{display:none;}
+.btn-login.loading .sp{display:block;}
+
+/* DOTS */
+.dots{display:flex;justify-content:center;gap:7px;margin-top:14px;}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(244,63,94,0.18);border:1px solid rgba(244,63,94,0.3);transition:all .3s;}
+.dot.used{background:var(--rose);box-shadow:0 0 7px rgba(244,63,94,0.5);}
+.secure{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:rgba(100,116,139,0.45);letter-spacing:1px;}
+.secure::before,.secure::after{content:'';flex:1;height:1px;background:var(--bd);}
+
+/* SUCCESS */
+.success-ov{position:fixed;inset:0;background:var(--bg);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.success-ov.show{display:flex;animation:mf .3s;}
+@keyframes mf{from{opacity:0;}to{opacity:1;}}
+.s-ic{font-size:2.8rem;animation:pop .5s cubic-bezier(.16,1,.3,1);}
+@keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+.s-ti{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--em);letter-spacing:2px;}
+.s-su{font-family:'JetBrains Mono',monospace;font-size:.67rem;color:var(--mu2);}
+.s-bar{width:190px;height:3px;background:rgba(16,185,129,0.15);border-radius:2px;overflow:hidden;}
+.s-fill{height:100%;width:0%;background:var(--em);border-radius:2px;transition:width 1.8s linear;}
+
+/* MODALS */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(7px);z-index:1000;display:none;align-items:center;justify-content:center;}
+.mo.open{display:flex;animation:mf .18s;}
+.mc{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;width:520px;max-width:94vw;max-height:90vh;overflow-y:auto;box-shadow:0 28px 70px rgba(0,0,0,0.65),var(--gG);animation:ms .22s cubic-bezier(.16,1,.3,1);}
+.mc-sm{width:400px;}
+.mc-lg{width:680px;}
+@keyframes ms{from{transform:translateY(18px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.mh{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2;}
+.mt-modal{font-family:'Syne',sans-serif;font-size:1.02rem;font-weight:700;color:var(--wh);}
+.mx{background:none;border:none;color:var(--mu);font-size:1.16rem;cursor:pointer;transition:color .2s;padding:0 2px;}
+.mx:hover{color:var(--rose);}
+.mb{padding:20px;}
+
+/* FORM elements inside modal */
+.fg2{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.fg2 label{font-family:'JetBrains Mono',monospace;font-size:.61rem;color:var(--mu2);letter-spacing:1.5px;text-transform:uppercase;}
+.fi2,.fs2{background:rgba(255,255,255,0.04);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:all .2s;width:100%;}
+.fi2:focus,.fs2:focus{border-color:rgba(212,168,67,0.36);background:rgba(212,168,67,0.04);}
+.fs2 option{background:var(--bg2);color:var(--wh);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fa{display:flex;gap:9px;justify-content:flex-end;margin-top:16px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 17px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.81rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+.btn-gd{background:linear-gradient(135deg,var(--gold),var(--gold3));color:#080c12;}
+.btn-gd:hover{box-shadow:0 4px 18px rgba(212,168,67,0.32);transform:translateY(-1px);}
+.btn-gh{background:rgba(255,255,255,0.04);color:var(--mu2);border:1px solid var(--bd);}
+.btn-gh:hover{color:var(--wh);background:rgba(255,255,255,0.07);}
+.btn-sm{padding:5px 12px;font-size:.74rem;}
+.btn-dr{background:rgba(244,63,94,0.1);color:var(--rose);border:1px solid rgba(244,63,94,0.22);}
+.btn-dr:hover{background:rgba(244,63,94,0.18);}
+
+/* CONFIRM DIALOG */
+.cfm-mo{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:5000;display:none;align-items:center;justify-content:center;}
+.cfm-mo.open{display:flex;animation:mf .15s;}
+.cfm-box{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:27px 25px 21px;width:360px;max-width:93vw;box-shadow:0 28px 70px rgba(0,0,0,0.7),var(--gG);animation:ms .2s cubic-bezier(.16,1,.3,1);text-align:center;}
+.cfm-ic{font-size:2rem;margin-bottom:10px;display:block;}
+.cfm-ti{font-family:'Syne',sans-serif;font-size:.96rem;font-weight:800;color:var(--wh);margin-bottom:4px;}
+.cfm-mg{font-size:.79rem;color:var(--mu2);line-height:1.55;margin-bottom:18px;}
+.cfm-row{display:flex;gap:9px;justify-content:center;}
+.cfm-y{background:linear-gradient(135deg,var(--rose),#b0132a);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;}
+.cfm-y:hover{box-shadow:0 4px 18px rgba(244,63,94,0.38);transform:translateY(-1px);}
+.cfm-y.gy{background:linear-gradient(135deg,var(--gold),var(--gold3));color:#080c12;}
+.cfm-y.gy:hover{box-shadow:0 4px 18px rgba(212,168,67,0.38);}
+.cfm-n{background:rgba(255,255,255,0.04);color:var(--mu2);border:1px solid var(--bd);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.cfm-n:hover{color:var(--wh);background:rgba(255,255,255,0.08);}
+
+/* FOOTER */
+.footer{position:relative;z-index:10;background:rgba(8,12,18,0.94);border-top:1px solid var(--bd);padding:10px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.f-brand{font-family:'JetBrains Mono',monospace;font-size:.59rem;color:var(--mu);}
+.f-brand span{color:var(--gold);}
+.f-mid{font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--mu);letter-spacing:.6px;}
+.f-r{display:flex;align-items:center;gap:9px;}
+.f-status{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--em);}
+.f-status::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--em);animation:sp 2s infinite;}
+@keyframes sp{0%,100%{opacity:1;box-shadow:0 0 4px var(--em);}50%{opacity:.35;box-shadow:none;}}
+.three-dot{width:27px;height:27px;border-radius:50%;background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5px;cursor:pointer;transition:all .2s;}
+.three-dot:hover{background:rgba(212,168,67,0.18);border-color:rgba(212,168,67,0.42);box-shadow:0 0 12px rgba(212,168,67,0.22);}
+.three-dot .d{width:3px;height:3px;border-radius:50%;background:var(--gold);display:block;}
+
+/* PIN GATE */
+.pin-ic{font-size:2.2rem;text-align:center;margin-bottom:11px;display:block;}
+.pin-ti{font-family:'Syne',sans-serif;font-size:1.02rem;font-weight:800;color:var(--wh);text-align:center;margin-bottom:3px;}
+.pin-sub{font-size:.76rem;color:var(--mu2);text-align:center;margin-bottom:17px;}
+.pin-wrap{position:relative;margin-bottom:7px;}
+.pin-wrap .fi2{padding-right:36px;font-family:'JetBrains Mono',monospace;letter-spacing:5px;font-size:1.05rem;text-align:center;}
+.pin-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--mu);cursor:pointer;font-size:.86rem;transition:color .2s;}
+.pin-eye:hover{color:var(--gold);}
+.pin-dots{display:flex;justify-content:center;gap:7px;margin-bottom:5px;}
+.pin-dot{width:7px;height:7px;border-radius:50%;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.27);transition:all .3s;}
+.pin-dot.used{background:var(--rose);box-shadow:0 0 7px rgba(244,63,94,0.5);}
+.pin-err{background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.22);border-radius:8px;padding:7px 12px;font-size:.74rem;color:var(--rose);display:none;margin-bottom:10px;text-align:center;}
+.pin-err.show{display:block;animation:shk .3s ease;}
+
+/* CUSTOMISER */
+.cust-sec{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.cust-sec::after{content:'';flex:1;height:1px;background:var(--bd);}
+.cust-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--bd);border-radius:8px;margin-bottom:8px;gap:10px;}
+.cr-l .cr-t{font-size:.82rem;color:var(--wh);font-weight:500;}
+.cr-l .cr-s{font-size:.68rem;color:var(--mu2);margin-top:1px;}
+.ci{background:rgba(255,255,255,0.05);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;color:var(--wh);font-family:'DM Sans',sans-serif;font-size:.81rem;outline:none;transition:all .2s;}
+.ci:focus{border-color:rgba(212,168,67,0.36);}
+.ci-w{width:175px;}
+.col-box{width:33px;height:26px;border:1px solid var(--bd);border-radius:6px;overflow:hidden;cursor:pointer;background:none;padding:2px;}
+input[type=color]{-webkit-appearance:none;border:none;padding:0;width:100%;height:100%;border-radius:3px;cursor:pointer;}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
+input[type=color]::-webkit-color-swatch{border:none;border-radius:3px;}
+.swatches{display:flex;gap:6px;flex-wrap:wrap;}
+.sw{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s;}
+.sw:hover{transform:scale(1.15);}
+.sw.on{border-color:var(--wh);box-shadow:0 0 8px rgba(255,255,255,0.26);}
+.tog{position:relative;width:34px;height:18px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;}
+.tk{position:absolute;inset:0;background:rgba(255,255,255,0.07);border:1px solid var(--bd);border-radius:20px;cursor:pointer;transition:all .25s;}
+.tk::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:var(--mu);transition:all .25s;}
+.tog input:checked+.tk{background:rgba(212,168,67,0.18);border-color:rgba(212,168,67,0.42);}
+.tog input:checked+.tk::before{transform:translateX(16px) translateY(-50%);background:var(--gold);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.divider{border:none;border-top:1px solid var(--bd);margin:14px 0;}
+
+/* logo drop */
+.logo-drop{border:2px dashed rgba(212,168,67,0.3);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:rgba(212,168,67,0.03);}
+.logo-drop:hover{border-color:rgba(212,168,67,0.55);background:rgba(212,168,67,0.06);}
+.logo-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.lp{font-size:.8rem;color:var(--mu2);margin-top:5px;}
+.lpw{display:flex;align-items:center;gap:12px;margin-top:9px;}
+.lpi{width:48px;height:48px;border-radius:8px;border:1.5px solid var(--gold3);object-fit:cover;display:none;}
+.lpn{font-size:.74rem;color:var(--mu2);}
+
+/* TOAST */
+.toasts{position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:var(--bg2);border:1px solid var(--bd);border-radius:9px;padding:10px 13px;display:flex;align-items:center;gap:9px;font-size:.79rem;min-width:215px;box-shadow:0 8px 26px rgba(0,0,0,0.5);animation:tin .27s cubic-bezier(.16,1,.3,1);}
+@keyframes tin{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast.success{border-color:rgba(16,185,129,0.32);}
+.toast.error{border-color:rgba(244,63,94,0.32);}
+.toast.info{border-color:rgba(212,168,67,0.32);}
+</style>
+</head>
+<body>
+
+<div class="ambient"><div class="orb a"></div><div class="orb b"></div></div>
+<div class="grid"></div>
+<div class="particles" id="particles"></div>
+
+<div class="wrap">
+  <div style="display:flex;flex-direction:column;align-items:center;animation:wIn .7s cubic-bezier(.16,1,.3,1) both;">
+    <div class="brand">
+      <div class="logo-ring" id="logo-ring-wrap">
+        <img id="login-logo" src="" alt="" style="display:none;">
+        <div id="login-logo-fallback" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;color:var(--gold);">TRB</div>
+      </div>
+      <input type="file" id="logo-file" accept="image/*" style="display:none;">
+      <div class="brand-name" id="login-brand-name">TRB <span>Creative</span></div>
+      <div class="brand-tag" id="login-brand-tag">// CRM Management System //</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔐 Secure <span>Access</span></div>
+      <div class="err-box" id="err-box"><span>⚠️</span><span id="err-txt">Invalid credentials.</span></div>
+      <div class="lock-box" id="lock-box"><span>🔒</span><span>Account locked. Try again in <span id="cd">30</span>s</span></div>
+      <div class="fg"><label class="fl">Login ID</label><div class="iw"><input class="fi" type="text" id="login-id" placeholder="Enter your login ID" autocomplete="off"><span class="i-ico">👤</span></div></div>
+      <div class="fg"><label class="fl">Password</label><div class="iw"><input class="fi" type="password" id="login-pw" placeholder="Enter your password" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()"><span class="i-ico">🔑</span><button class="pw-eye" type="button" onclick="togglePw()" id="pw-btn">👁️</button></div></div>
+      <button class="btn-login" id="login-btn" onclick="doLogin()"><span class="bt">ACCESS DASHBOARD</span><div class="sp"></div></button>
+      <div class="dots"><div class="dot" id="dot0"></div><div class="dot" id="dot1"></div><div class="dot" id="dot2"></div></div>
+      <div class="secure">🔒 Encrypted · Session Protected</div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div class="success-ov" id="succ-ov">
+  <div class="s-ic">✅</div>
+  <div class="s-ti">ACCESS GRANTED</div>
+  <div class="s-su">Redirecting to dashboard…</div>
+  <div class="s-bar"><div class="s-fill" id="s-fill"></div></div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="f-brand">© 2025 <span id="f-company">TRB Creative</span></div>
+  <div class="f-mid" id="f-mid">Secure · Encrypted · Session Protected</div>
+  <div class="f-r">
+    <div class="f-status">Secure Login</div>
+    <div class="three-dot" onclick="openPin()" title="Customise website">
+      <span class="d"></span><span class="d"></span><span class="d"></span>
+    </div>
+  </div>
+</footer>
+
+<!-- PIN GATE -->
+<div class="mo" id="m-pin"><div class="mc mc-sm"><div class="mh"><div class="mt-modal">🔐 Admin Access</div><button class="mx" onclick="cm('m-pin')">✕</button></div>
+<div class="mb">
+  <span class="pin-ic">⚙️</span>
+  <div class="pin-ti">Customisation Panel</div>
+  <div class="pin-sub">Enter your admin PIN to unlock site settings</div>
+  <div class="pin-err" id="pin-err">Incorrect PIN. Try again.</div>
+  <div class="pin-wrap"><input class="fi2" type="password" id="pin-inp" maxlength="10" placeholder="••••" autocomplete="off"><button class="pin-eye" onclick="togglePinEye()" id="pin-eye">👁️</button></div>
+  <div class="pin-dots"><div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div></div>
+  <div class="fa" style="justify-content:center;margin-top:12px;"><button class="btn btn-gh" onclick="cm('m-pin')">Cancel</button><button class="btn btn-gd" onclick="checkPin()">Unlock →</button></div>
+</div></div></div>
+
+<!-- CUSTOMISER -->
+<div class="mo" id="m-cust"><div class="mc mc-lg"><div class="mh"><div class="mt-modal">⚙️ Login Page Customisation</div><button class="mx" onclick="cm('m-cust')">✕</button></div>
+<div class="mb">
+  <div class="cust-sec">🏷️ Branding</div>
+  <div class="g2" style="margin-bottom:12px;">
+    <div class="cust-row" style="flex-direction:column;align-items:flex-start;gap:6px;"><div class="cr-l"><div class="cr-t">Company Name</div><div class="cr-s">Shown in brand &amp; footer</div></div><input class="ci" style="width:100%;" id="cu-company" placeholder="TRB Creative"></div>
+    <div class="cust-row" style="flex-direction:column;align-items:flex-start;gap:6px;"><div class="cr-l"><div class="cr-t">Brand Tagline</div><div class="cr-s">Below company name</div></div><input class="ci" style="width:100%;" id="cu-tag" placeholder="// CRM Management System //"></div>
+    <div class="cust-row" style="flex-direction:column;align-items:flex-start;gap:6px;"><div class="cr-l"><div class="cr-t">Page Title</div><div class="cr-s">Browser tab</div></div><input class="ci" style="width:100%;" id="cu-title" placeholder="TRB Creative — Secure Login"></div>
+    <div class="cust-row" style="flex-direction:column;align-items:flex-start;gap:6px;"><div class="cr-l"><div class="cr-t">Footer Text</div><div class="cr-s">Centre of footer</div></div><input class="ci" style="width:100%;" id="cu-fmid" placeholder="Secure · Encrypted…"></div>
+  </div>
+  <div class="cust-sec">🖼️ Logo</div>
+  <div class="logo-drop" style="margin-bottom:10px;">
+    <input type="file" id="cu-logo" accept="image/*" onchange="previewLogo(this)">
+    <div style="font-size:1.7rem;">🖼️</div>
+    <div class="lp">Click or drag to upload logo<br><span style="font-size:.69rem;color:var(--mu);">PNG, JPG — recommended 200×200px</span></div>
+    <div class="lpw" id="lpw" style="display:none;"><img id="lpi" class="lpi" src="" alt=""><div class="lpn" id="lpn"></div></div>
+  </div>
+  <div class="cust-row" style="margin-bottom:12px;">
+    <div class="cr-l"><div class="cr-t">Logo Size</div><div class="cr-s">Login page logo dimensions</div></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <input type="range" id="cu-logo-size" min="52" max="120" value="76" style="width:110px;accent-color:var(--gold);cursor:pointer;" oninput="previewLogoSize(this.value)">
+      <span id="cu-logo-size-val" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--gold);min-width:36px;">76px</span>
+    </div>
+  </div>
+  <div class="cust-sec">🎨 Accent Colour</div>
+  <div class="cust-row" style="margin-bottom:8px;">
+    <div class="cr-l"><div class="cr-t">Theme Preset</div></div>
+    <div class="swatches">
+      <div class="sw on" data-th="gold" style="background:#d4a843;" onclick="applyTheme('gold',this)"></div>
+      <div class="sw" data-th="cyan" style="background:#38bdf8;" onclick="applyTheme('cyan',this)"></div>
+      <div class="sw" data-th="em" style="background:#10b981;" onclick="applyTheme('em',this)"></div>
+      <div class="sw" data-th="rose" style="background:#f43f5e;" onclick="applyTheme('rose',this)"></div>
+      <div class="sw" data-th="violet" style="background:#8b5cf6;" onclick="applyTheme('violet',this)"></div>
+      <div class="sw" data-th="orange" style="background:#f97316;" onclick="applyTheme('orange',this)"></div>
+    </div>
+  </div>
+  <div class="cust-row" style="margin-bottom:14px;">
+    <div class="cr-l"><div class="cr-t">Custom Colour</div></div>
+    <div class="col-box"><input type="color" id="cu-color" value="#d4a843" oninput="applyCA(this.value)"></div>
+  </div>
+  <div class="cust-sec">✨ Effects</div>
+  <div class="g2" style="margin-bottom:4px;">
+    <div class="cust-row"><div class="cr-l"><div class="cr-t">Grid Lines</div></div><label class="tog"><input type="checkbox" id="tu-grid" checked><span class="tk"></span></label></div>
+    <div class="cust-row"><div class="cr-l"><div class="cr-t">Floating Particles</div></div><label class="tog"><input type="checkbox" id="tu-part" checked><span class="tk"></span></label></div>
+    <div class="cust-row"><div class="cr-l"><div class="cr-t">Ambient Glow Orbs</div></div><label class="tog"><input type="checkbox" id="tu-orbs" checked><span class="tk"></span></label></div>
+  </div>
+  <div class="divider"></div>
+  <div class="fa">
+    <button class="btn btn-dr btn-sm" onclick="resetCust()">↺ Reset</button>
+    <button class="btn btn-gh" onclick="cm('m-cust')">Cancel</button>
+    <button class="btn btn-gd" onclick="saveCust()">💾 Save Changes</button>
+  </div>
+</div></div></div>
+
+<!-- CONFIRM -->
+<div class="cfm-mo" id="cfm"><div class="cfm-box">
+  <span class="cfm-ic" id="cfm-ic">⚠️</span>
+  <div class="cfm-ti" id="cfm-ti">Are you sure?</div>
+  <div class="cfm-mg" id="cfm-mg">This cannot be undone.</div>
+  <div class="cfm-row"><button class="cfm-n" id="cfm-n" onclick="rCfm(false)">Cancel</button><button class="cfm-y" id="cfm-y" onclick="rCfm(true)">Confirm</button></div>
+</div></div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ── FIREBASE INIT ── */
+const _fbConfig={
+  apiKey:"AIzaSyD-8cWQ4mA8KR4hERc58FAVCEJipEnBvGY",
+  authDomain:"dashboard-be1fd.firebaseapp.com",
+  databaseURL:"https://dashboard-be1fd-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"dashboard-be1fd",
+  storageBucket:"dashboard-be1fd.firebasestorage.app",
+  messagingSenderId:"1004513673690",
+  appId:"1:1004513673690:web:2081d8802d3747c1d180e3"
+};
+firebase.initializeApp(_fbConfig);
+const DB_LOGIN=firebase.database().ref('trb_crm/login_settings');
+
+/* ── AUTH ── */
+function h(s){let x=5381;for(let i=0;i<s.length;i++)x=((x<<5)+x)^s.charCodeAt(i);return(x>>>0).toString(36);}
+const CR={id:'9733145787',ph:h('Tirtha@2002')};
+const SK='trb_auth_session',LK='trb_lockout';
+const MAX=3,LOCK=60;
+
+window.addEventListener('DOMContentLoaded',async ()=>{
+  if(isAuth()){location.replace('dashboard.html');return;}
+  loadLogo();spawnParticles();checkLock();
+  await loadCust();
+  document.getElementById('login-id').focus();
+});
+
+function isAuth(){try{const d=JSON.parse(atob(sessionStorage.getItem(SK)||''));return d.token===h(CR.id+CR.ph+d.ts)&&Date.now()-d.ts<28800000;}catch{return false;}}
+function getLock(){try{return JSON.parse(localStorage.getItem(LK));}catch{return null;}}
+function setLock(a,u){localStorage.setItem(LK,JSON.stringify({attempts:a,until:u}));}
+function clrLock(){localStorage.removeItem(LK);}
+function getAttempts(){const lo=getLock();return lo?lo.attempts:0;}
+
+function checkLock(){const lo=getLock();if(lo&&lo.until>Date.now()){startLockUI(Math.ceil((lo.until-Date.now())/1000));}else if(lo){clrLock();}updDots();}
+
+function doLogin(){
+  const btn=document.getElementById('login-btn');
+  const lo=getLock();if(lo&&lo.until>Date.now())return;
+  const id=document.getElementById('login-id').value.trim();
+  const pw=document.getElementById('login-pw').value;
+  btn.classList.add('loading');btn.disabled=true;
+  setTimeout(()=>{
+    btn.classList.remove('loading');btn.disabled=false;
+    if(id===CR.id&&h(pw)===CR.ph){
+      clrLock();
+      const ts=Date.now();sessionStorage.setItem(SK,btoa(JSON.stringify({token:h(CR.id+CR.ph+ts),ts})));
+      const ov=document.getElementById('succ-ov');ov.classList.add('show');
+      setTimeout(()=>{document.getElementById('s-fill').style.width='100%';},50);
+      setTimeout(()=>location.replace('dashboard.html'),2000);
+    }else{
+      const a=getAttempts()+1;
+      if(a>=MAX){setLock(a,Date.now()+LOCK*1000);startLockUI(LOCK);}
+      else{setLock(a,0);showErr(`Invalid credentials. ${MAX-a} attempt${MAX-a!==1?'s':''} remaining.`);}
+      updDots();shakeCard();document.getElementById('login-pw').value='';
+    }
+  },700+Math.random()*350);
+}
+
+function showErr(msg){const e=document.getElementById('err-box');document.getElementById('err-txt').textContent=msg;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');document.getElementById('lock-box').classList.remove('show');}
+let lockT=null;
+function startLockUI(s){
+  document.getElementById('err-box').classList.remove('show');
+  document.getElementById('lock-box').classList.add('show');
+  document.getElementById('login-btn').disabled=true;
+  document.getElementById('login-id').disabled=true;
+  document.getElementById('login-pw').disabled=true;
+  let rem=s;document.getElementById('cd').textContent=rem+'s';
+  if(lockT)clearInterval(lockT);
+  lockT=setInterval(()=>{rem--;document.getElementById('cd').textContent=rem+'s';if(rem<=0){clearInterval(lockT);clrLock();document.getElementById('lock-box').classList.remove('show');['login-btn','login-id','login-pw'].forEach(id=>{document.getElementById(id).disabled=false;});updDots();document.getElementById('login-id').focus();}},1000);
+}
+function updDots(){const a=getAttempts();for(let i=0;i<3;i++){const d=document.getElementById('dot'+i);if(d)d.classList.toggle('used',i<a);}}
+function shakeCard(){const c=document.querySelector('.card');c.style.animation='none';setTimeout(()=>{c.style.animation='';},10);}
+function togglePw(){const f=document.getElementById('login-pw'),b=document.getElementById('pw-btn');f.type=f.type==='password'?'text':'password';b.textContent=f.type==='password'?'👁️':'🙈';}
+
+/* ── PARTICLES ── */
+function spawnParticles(){
+  const c=document.getElementById('particles');
+  for(let i=0;i<16;i++){const p=document.createElement('div');p.className='particle';const s=2+Math.random()*3.5;p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${9+Math.random()*11}s;animation-delay:${Math.random()*8}s;${Math.random()>.55?'background:var(--cyan);':''}`;c.appendChild(p);}
+}
+
+/* ── TOAST ── */
+function toast(msg,type='info'){const el=document.createElement('div');el.className=`toast ${type}`;el.innerHTML=`<span>${{success:'✅',error:'❌',info:'✨'}[type]||'•'}</span><span>${msg}</span>`;document.getElementById('toasts').appendChild(el);setTimeout(()=>el.remove(),3000);}
+
+/* ── CONFIRM ── */
+let _cr=null;
+function cfm({ic='⚠️',ti='Are you sure?',mg='This cannot be undone.',yl='Confirm',yc='',nl='Cancel'}={}){
+  document.getElementById('cfm-ic').textContent=ic;document.getElementById('cfm-ti').textContent=ti;document.getElementById('cfm-mg').textContent=mg;
+  const y=document.getElementById('cfm-y');y.textContent=yl;y.className='cfm-y'+(yc?' '+yc:'');
+  document.getElementById('cfm-n').textContent=nl;
+  document.getElementById('cfm').classList.add('open');
+  return new Promise(r=>{_cr=r;});
+}
+function rCfm(v){if(_cr){_cr(v);_cr=null;}document.getElementById('cfm').classList.remove('open');}
+document.getElementById('cfm').addEventListener('click',e=>{if(e.target===document.getElementById('cfm'))rCfm(false);});
+
+/* ── MODAL UTIL ── */
+const cm=id=>document.getElementById(id).classList.remove('open');
+const om=id=>document.getElementById(id).classList.add('open');
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+/* ── LOGO — IndexedDB for true persistence ── */
+const LOGO_SIZE_KEY='trb_logo_size_login';
+let _logoDB=null;
+
+function openLogoDB(){
+  return new Promise((res,rej)=>{
+    if(_logoDB){res(_logoDB);return;}
+    const req=indexedDB.open('trb_assets',1);
+    req.onupgradeneeded=e=>e.target.result.createObjectStore('kv');
+    req.onsuccess=e=>{_logoDB=e.target.result;res(_logoDB);};
+    req.onerror=e=>rej(e);
+  });
+}
+function dbSet(key,val){return openLogoDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(val,key);tx.oncomplete=()=>res();tx.onerror=e=>rej(e);}));}
+function dbGet(key){return openLogoDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction('kv','readonly');const req=tx.objectStore('kv').get(key);req.onsuccess=e=>res(e.target.result);req.onerror=e=>rej(e);}));}
+function dbDel(key){return openLogoDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').delete(key);tx.oncomplete=()=>res();tx.onerror=e=>rej(e);}));}
+
+function compressImage(file,maxPx,quality,cb){
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    let w=img.width,h=img.height;
+    if(w>maxPx||h>maxPx){const r=Math.min(maxPx/w,maxPx/h);w=Math.round(w*r);h=Math.round(h*r);}
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);cb(c.toDataURL('image/jpeg',0.85));
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);cb(null);};
+  img.src=url;
+}
+
+function loadLogo(){
+  const sz=parseInt(localStorage.getItem(LOGO_SIZE_KEY)||'76');
+  applyLogoSize(sz);
+  dbGet('logo').then(src=>{if(src)_applyLoginLogo(src);}).catch(()=>{});
+}
+
+function _applyLoginLogo(src){
+  const img=document.getElementById('login-logo');
+  const fb=document.getElementById('login-logo-fallback');
+  if(src&&src.length>10){
+    img.src=src;img.style.display='block';
+    if(fb)fb.style.display='none';
+  } else {
+    img.src='';img.style.display='none';
+    if(fb)fb.style.display='flex';
+  }
+}
+
+function applyLogoSize(sz){
+  const ring=document.getElementById('logo-ring-wrap');
+  if(ring){ring.style.width=sz+'px';ring.style.height=sz+'px';}
+}
+function previewLogoSize(val){
+  document.getElementById('cu-logo-size-val').textContent=val+'px';
+  applyLogoSize(parseInt(val));
+}
+
+// previewLogo — called from customiser drag-drop input
+function previewLogo(input){
+  const file=input.files[0];if(!file)return;
+  compressImage(file,400,0.85,src=>{
+    if(!src)return;
+    document.getElementById('lpi').src=src;
+    document.getElementById('lpi').style.display='block';
+    document.getElementById('lpn').textContent=file.name;
+    document.getElementById('lpw').style.display='flex';
+    _applyLoginLogo(src);
+    // Save immediately to IndexedDB
+    dbSet('logo',src).then(()=>{
+      toast('Logo saved — persists after refresh ✨','success');
+    }).catch(()=>toast('Could not save logo','error'));
+  });
+}
+
+// logo-file input is triggered only from saveCust via click()
+document.getElementById('logo-file').addEventListener('change',function(){
+  const file=this.files[0];if(!file)return;
+  compressImage(file,400,0.85,src=>{
+    if(!src){toast('Could not process image','error');return;}
+    dbSet('logo',src).then(()=>{
+      _applyLoginLogo(src);
+      document.getElementById('lpi').src=src;
+      document.getElementById('lpi').style.display='block';
+      document.getElementById('lpn').textContent='Logo saved ✓';
+      document.getElementById('lpw').style.display='flex';
+      toast('Logo saved — persists after refresh ✨','success');
+    }).catch(()=>toast('Could not save logo','error'));
+  });
+  this.value='';
+});
+
+/* ── PIN (opens customiser only — logo NOT clickable) ── */
+const PIN='9733';
+let pinA=0;
+
+function openPin(){
+  pinA=0;
+  document.getElementById('pin-inp').value='';
+  document.getElementById('pin-err').classList.remove('show');
+  const sub=document.querySelector('#m-pin .pin-sub');
+  if(sub)sub.textContent='Enter your admin PIN to unlock site settings';
+  for(let i=0;i<3;i++){const d=document.getElementById('pd'+i);if(d)d.classList.remove('used');}
+  om('m-pin');
+  setTimeout(()=>document.getElementById('pin-inp').focus(),200);
+}
+
+function checkPin(){
+  const v=document.getElementById('pin-inp').value.trim();
+  if(v===PIN){
+    cm('m-pin');
+    setTimeout(openCust,150);
+  } else {
+    pinA++;
+    for(let i=0;i<3;i++){const d=document.getElementById('pd'+i);if(d)d.classList.toggle('used',i<Math.min(pinA,3));}
+    const e=document.getElementById('pin-err');
+    e.textContent=pinA>=3?'Too many attempts.':'Incorrect PIN. Try again.';
+    e.classList.remove('show');void e.offsetWidth;e.classList.add('show');
+    document.getElementById('pin-inp').value='';
+    if(pinA>=3)setTimeout(()=>{cm('m-pin');pinA=0;},1800);
+  }
+}
+
+function togglePinEye(){const f=document.getElementById('pin-inp'),b=document.getElementById('pin-eye');f.type=f.type==='password'?'text':'password';b.textContent=f.type==='password'?'👁️':'🙈';}
+document.getElementById('pin-inp').addEventListener('keydown',e=>{if(e.key==='Enter')checkPin();});
+
+/* ── CUSTOMISER ── */
+const CK='trb_cust_login';
+const THEMES={gold:{g:'#d4a843',g2:'#f0c870',g3:'#a07828'},cyan:{g:'#38bdf8',g2:'#7dd3fc',g3:'#0ea5e9'},em:{g:'#10b981',g2:'#34d399',g3:'#059669'},rose:{g:'#f43f5e',g2:'#fb7185',g3:'#e11d48'},violet:{g:'#8b5cf6',g2:'#a78bfa',g3:'#7c3aed'},orange:{g:'#f97316',g2:'#fb923c',g3:'#ea580c'}};
+function applyAcc(a){document.documentElement.style.setProperty('--gold',a.g);document.documentElement.style.setProperty('--gold2',a.g2);document.documentElement.style.setProperty('--gold3',a.g3);}
+function applyTheme(name,el){document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));el.classList.add('on');const t=THEMES[name];if(t){applyAcc(t);document.getElementById('cu-color').value=t.g;}}
+function applyCA(hex){applyAcc({g:hex,g2:hex+'bb',g3:hex+'77'});document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));}
+
+function _applyCustData(d){
+  if(!d)return;
+  if(d.acc)applyAcc(d.acc);
+  if(d.company){
+    const nm=document.getElementById('login-brand-name');
+    if(nm){const p=d.company.split(' ');nm.innerHTML=p[0]+(p.length>1?' <span>'+p.slice(1).join(' ')+'</span>':'');}
+    const fc=document.getElementById('f-company');if(fc)fc.textContent=d.company;
+  }
+  if(d.tag){const bt=document.getElementById('login-brand-tag');if(bt)bt.textContent=d.tag;}
+  if(d.title)document.title=d.title;
+  if(d.fmid){const fm=document.getElementById('f-mid');if(fm)fm.textContent=d.fmid;}
+  if(d.hideGrid){const e=document.querySelector('.grid');if(e)e.style.display='none';}
+  if(d.hidePart){const e=document.getElementById('particles');if(e)e.style.display='none';}
+  if(d.hideOrbs){const e=document.querySelector('.ambient');if(e)e.style.display='none';}
+  if(d.logoSz)applyLogoSize(d.logoSz);
+}
+
+async function loadCust(){
+  try{
+    /* ── MIGRATION: push any existing localStorage cust → Firebase ── */
+    const local=localStorage.getItem(CK);
+    if(local){
+      try{
+        const ld=JSON.parse(local);
+        const chk=await DB_LOGIN.once('value');
+        if(!chk.val()){
+          await DB_LOGIN.set(ld);
+        }
+        localStorage.removeItem(CK);
+      }catch(me){console.warn('Login cust migration skipped:',me);}
+    }
+
+    /* ── LOAD from Firebase ── */
+    const snap=await DB_LOGIN.once('value');
+    const d=snap.val();
+    _applyCustData(d);
+  }catch(e){
+    /* Fallback to localStorage if Firebase unreachable */
+    try{_applyCustData(JSON.parse(localStorage.getItem(CK)||'{}'));}catch(e2){}
+  }
+}
+
+async function openCust(){
+  try{
+    let d={};
+    try{
+      const snap=await DB_LOGIN.once('value');
+      d=snap.val()||{};
+    }catch(e){
+      d=JSON.parse(localStorage.getItem(CK)||'{}');
+    }
+    document.getElementById('cu-company').value=d.company||'TRB Creative';
+    document.getElementById('cu-tag').value=d.tag||'// CRM Management System //';
+    document.getElementById('cu-title').value=d.title||'TRB Creative — Secure Login';
+    document.getElementById('cu-fmid').value=d.fmid||'Secure · Encrypted · Session Protected';
+    document.getElementById('tu-grid').checked=!d.hideGrid;
+    document.getElementById('tu-part').checked=!d.hidePart;
+    document.getElementById('tu-orbs').checked=!d.hideOrbs;
+    const sz=d.logoSz||76;
+    document.getElementById('cu-logo-size').value=sz;
+    document.getElementById('cu-logo-size-val').textContent=sz+'px';
+    if(d.acc&&d.acc.g)document.getElementById('cu-color').value=d.acc.g;
+    document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));
+    const sw=document.querySelector('.sw[data-th="'+(d.theme||'gold')+'"]');
+    if(sw)sw.classList.add('on');else{const def=document.querySelector('.sw[data-th="gold"]');if(def)def.classList.add('on');}
+    dbGet('logo').then(logo=>{
+      if(logo){document.getElementById('lpi').src=logo;document.getElementById('lpi').style.display='block';document.getElementById('lpn').textContent='Current logo';document.getElementById('lpw').style.display='flex';}
+      else{document.getElementById('lpw').style.display='none';}
+    }).catch(()=>{document.getElementById('lpw').style.display='none';});
+  }catch(e){}
+  om('m-cust');
+}
+
+function saveCust(){
+  const company=document.getElementById('cu-company').value.trim()||'TRB Creative';
+  const tag=document.getElementById('cu-tag').value.trim();
+  const title=document.getElementById('cu-title').value.trim();
+  const fmid=document.getElementById('cu-fmid').value.trim();
+  const hideGrid=!document.getElementById('tu-grid').checked;
+  const hidePart=!document.getElementById('tu-part').checked;
+  const hideOrbs=!document.getElementById('tu-orbs').checked;
+  const hex=document.getElementById('cu-color').value;
+  const activeSw=document.querySelector('.sw.on');
+  const theme=activeSw?activeSw.dataset.th:'gold';
+  const acc={g:hex,g2:hex+'bb',g3:hex+'77'};
+  const logoSz=parseInt(document.getElementById('cu-logo-size').value)||76;
+  // save new logo from customiser file drop if present
+  const newLogo=document.getElementById('cu-logo').files[0];
+  if(newLogo){
+    compressImage(newLogo,400,0.85,src=>{
+      if(src){dbSet('logo',src).then(()=>{_applyLoginLogo(src);}).catch(()=>{});}
+    });
+  }
+  const custData={company,tag,title,fmid,hideGrid,hidePart,hideOrbs,acc,theme,logoSz};
+  // Save to Firebase (primary) + localStorage (backup)
+  DB_LOGIN.set(custData).then(()=>{
+    toast('Saved to Firebase! ✨','success');
+  }).catch(e=>{
+    console.error('Firebase save error:',e);
+    toast('⚠️ Firebase error — saved locally','error');
+  });
+  localStorage.setItem(LOGO_SIZE_KEY,logoSz);
+  localStorage.setItem(CK,JSON.stringify(custData)); // local backup
+  // apply immediately
+  const parts=company.split(' ');
+  const nm=document.getElementById('login-brand-name');
+  if(nm)nm.innerHTML=parts[0]+(parts.length>1?' <span>'+parts.slice(1).join(' ')+'</span>':'');
+  const fc=document.getElementById('f-company');if(fc)fc.textContent=company;
+  const bt=document.getElementById('login-brand-tag');if(bt&&tag)bt.textContent=tag;
+  if(title)document.title=title;
+  const fm=document.getElementById('f-mid');if(fm&&fmid)fm.textContent=fmid;
+  const grid=document.querySelector('.grid');if(grid)grid.style.display=hideGrid?'none':'';
+  const pts=document.getElementById('particles');if(pts)pts.style.display=hidePart?'none':'';
+  const orbs=document.querySelector('.ambient');if(orbs)orbs.style.display=hideOrbs?'none':'';
+  applyAcc(acc);applyLogoSize(logoSz);
+  cm('m-cust');
+}
+
+async function resetCust(){
+  const ok=await cfm({ic:'↺',ti:'Reset Login Page?',mg:'All customisations will be cleared and the page will reload.',yl:'Reset',yc:'gy',nl:'Keep'});
+  if(!ok)return;
+  try{await DB_LOGIN.remove();}catch(e){console.warn('Firebase reset error:',e);}
+  localStorage.removeItem(CK);localStorage.removeItem(LOGO_SIZE_KEY);
+  dbDel('logo').catch(()=>{}).finally(()=>location.reload());
+}
+
+</script>
+</body>
+</html>
